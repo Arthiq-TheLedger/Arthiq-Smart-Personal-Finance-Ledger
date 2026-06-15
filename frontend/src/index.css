@@ -1,0 +1,344 @@
+@import "tailwindcss";
+
+/* Class-based dark mode (required for theme toggle) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-arthiq-primary: #0f766e;
+  --color-arthiq-primary-dark: #115e59;
+  --color-arthiq-accent: #334155;
+  --color-arthiq-green: #059669;
+  --color-arthiq-green-dark: #047857;
+  --color-arthiq-purple: #475569;
+  --color-arthiq-purple-light: #64748b;
+  --color-arthiq-navy: #0f172a;
+  --color-arthiq-navy-light: #1e293b;
+  --color-ledger-bg: #f8fafc;
+  --color-ledger-line: #e2e8f0;
+  --color-logo-bg: #0f172a;
+  --font-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  @apply bg-slate-50 text-slate-900 transition-colors duration-300;
+}
+
+.dark body {
+  @apply bg-slate-900 text-slate-100;
+}
+
+/* Semantic text — use on headings/body when dark: pairs are easy to miss */
+.text-heading {
+  @apply text-slate-900 dark:text-slate-100;
+}
+
+.text-body {
+  @apply text-slate-600 dark:text-slate-300;
+}
+
+.text-muted {
+  @apply text-slate-500 dark:text-slate-400;
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, #0f766e, #0369a1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.input-field {
+  @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 
+         placeholder:text-slate-400
+         focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20
+         dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500;
+}
+
+select.input-field,
+.input-field select {
+  @apply cursor-pointer;
+}
+
+select.input-field option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+.dark select.input-field option,
+.dark .input-field option {
+  background-color: #1e293b;
+  color: #f1f5f9;
+}
+
+.ledger-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.ledger-table th,
+.ledger-table td {
+  border: 1px solid var(--color-ledger-line);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.ledger-table th {
+  background: #334155;
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.dark .ledger-table th {
+  background: #1e293b;
+}
+
+.ledger-table tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+.dark .ledger-table tr:nth-child(even) td {
+  background: #1e293b;
+}
+
+.dark .ledger-table td {
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+.ghost-balance {
+  color: #94a3b8;
+  font-style: italic;
+  opacity: 0.75;
+}
+
+.btn-primary {
+  @apply rounded-lg px-5 py-2.5 font-medium text-white transition-all duration-200;
+  background: var(--color-arthiq-primary);
+}
+
+.btn-primary:hover {
+  background: var(--color-arthiq-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(15, 118, 110, 0.35);
+}
+
+.btn-secondary {
+  @apply rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-slate-700 transition-all duration-200
+         hover:border-teal-500/40 hover:bg-teal-50/50 hover:shadow-md hover:shadow-teal-600/10
+         dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-teal-500/30 dark:hover:bg-slate-700;
+}
+
+.card {
+  @apply rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300
+         hover:border-teal-500/20 hover:shadow-md hover:shadow-teal-600/5;
+}
+
+.dark .card {
+  @apply border-slate-700 bg-slate-800 hover:border-teal-500/25 hover:shadow-teal-600/10;
+}
+
+/* Logo — always dark background (matches logo artwork) in every theme */
+.logo-shell,
+.logo-shell-sm,
+.logo-shell-lg {
+  @apply inline-flex shrink-0 items-center justify-center rounded-lg shadow-md;
+  background: var(--color-logo-bg);
+  box-shadow: 0 0 0 1px rgba(51, 65, 85, 0.8), 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.logo-shell {
+  @apply px-2 py-1;
+}
+
+.logo-shell-sm {
+  @apply p-1.5;
+}
+
+.logo-shell-lg {
+  @apply rounded-2xl p-4;
+  box-shadow: 0 0 0 1px rgba(51, 65, 85, 0.8), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* Landing page */
+.landing-page {
+  position: relative;
+  @apply bg-slate-50 text-slate-900;
+}
+
+.dark .landing-page {
+  @apply bg-slate-900 text-slate-100;
+}
+
+.landing-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.landing-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.1;
+  animation: float-orb 14s ease-in-out infinite;
+}
+
+.landing-orb-green {
+  width: 400px;
+  height: 400px;
+  background: #0f766e;
+  top: -5%;
+  left: -5%;
+}
+
+.landing-orb-purple {
+  width: 450px;
+  height: 450px;
+  background: #0369a1;
+  bottom: -10%;
+  right: -5%;
+  animation-delay: -7s;
+}
+
+.dark .landing-orb {
+  opacity: 0.16;
+}
+
+.landing-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.dark .landing-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+@keyframes float-orb {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(20px, -15px); }
+}
+
+.landing-page > header,
+.landing-page > section,
+.landing-page > footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* Cards with color + hover shine */
+.glass-card {
+  @apply relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300;
+}
+
+.dark .glass-card {
+  @apply border-slate-700 bg-slate-800;
+}
+
+.glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.06), rgba(3, 105, 161, 0.04));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.glass-card::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.08) 45%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.08) 55%,
+    transparent 60%
+  );
+  transform: translateX(-100%) rotate(25deg);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+
+.glass-card:hover {
+  @apply border-teal-500/30 shadow-lg;
+  box-shadow: 0 10px 40px rgba(15, 118, 110, 0.12);
+}
+
+.glass-card:hover::before {
+  opacity: 1;
+}
+
+.glass-card:hover::after {
+  transform: translateX(100%) rotate(25deg);
+}
+
+.dark .glass-card:hover {
+  box-shadow: 0 10px 40px rgba(15, 118, 110, 0.2);
+}
+
+/* Feature card accent variants */
+.feature-card-teal {
+  border-top: 3px solid #0f766e;
+}
+
+.feature-card-teal:hover {
+  border-color: rgba(15, 118, 110, 0.5);
+  box-shadow: 0 12px 40px rgba(15, 118, 110, 0.18);
+}
+
+.feature-card-sky {
+  border-top: 3px solid #0369a1;
+}
+
+.feature-card-sky:hover {
+  border-color: rgba(3, 105, 161, 0.5);
+  box-shadow: 0 12px 40px rgba(3, 105, 161, 0.15);
+}
+
+.feature-card-emerald {
+  border-top: 3px solid #059669;
+}
+
+.feature-card-emerald:hover {
+  border-color: rgba(5, 150, 105, 0.5);
+  box-shadow: 0 12px 40px rgba(5, 150, 105, 0.15);
+}
+
+.icon-box-teal {
+  @apply bg-teal-500/10 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300;
+}
+
+.icon-box-sky {
+  @apply bg-sky-500/10 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300;
+}
+
+.icon-box-emerald {
+  @apply bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300;
+}
+
+.tab-active {
+  @apply bg-teal-50 font-medium text-teal-800 dark:bg-teal-900/40 dark:text-teal-200;
+}
+
+.tab-inactive {
+  @apply text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700;
+}
