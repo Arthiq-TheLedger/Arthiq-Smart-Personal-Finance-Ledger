@@ -21,7 +21,7 @@ const tabs = [
 export default function Company() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const companyId = parseInt(id);
+  const companyId = id;
   const [company, setCompany] = useState(null);
   const [tab, setTab] = useState('ledger');
   const [unlocked, setUnlocked] = useState(false);
@@ -38,7 +38,7 @@ export default function Company() {
     api
       .get('/companies')
       .then((res) => {
-        const c = res.data.find((x) => x.id === companyId);
+        const c = res.data.find((x) => String(x.id) === String(companyId));
         setCompany(c);
         if (c) setShowUnlock(true);
       })

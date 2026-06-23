@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const pool = require('../config/db');
 const { authenticate, getCompanyAccess } = require('../middleware/auth');
+const { asId } = require('../utils/ids');
 
 const router = express.Router();
 
@@ -51,7 +52,7 @@ router.post('/', async (req, res) => {
 });
 
 router.post('/:companyId/unlock', async (req, res) => {
-  const companyId = parseInt(req.params.companyId);
+  const companyId = asId(req.params.companyId);
   const { password } = req.body;
 
   const access = await getCompanyAccess(req.userId, companyId);
@@ -74,7 +75,7 @@ router.post('/:companyId/unlock', async (req, res) => {
 });
 
 router.delete('/:companyId', async (req, res) => {
-  const companyId = parseInt(req.params.companyId);
+  const companyId = asId(req.params.companyId);
   const { password } = req.body;
 
   if (!password) {
@@ -93,7 +94,7 @@ router.delete('/:companyId', async (req, res) => {
 });
 
 router.get('/:companyId/members', async (req, res) => {
-  const companyId = parseInt(req.params.companyId);
+  const companyId = asId(req.params.companyId);
   const access = await getCompanyAccess(req.userId, companyId);
   if (!access) return res.status(403).json({ error: 'Access denied' });
 
@@ -114,7 +115,7 @@ router.get('/:companyId/members', async (req, res) => {
 });
 
 router.post('/:companyId/share', async (req, res) => {
-  const companyId = parseInt(req.params.companyId);
+  const companyId = asId(req.params.companyId);
   const { email, role } = req.body;
 
   if (!['read', 'write', 'both'].includes(role)) {
@@ -149,8 +150,8 @@ router.post('/:companyId/share', async (req, res) => {
 });
 
 router.delete('/:companyId/members/:userId', async (req, res) => {
-  const companyId = parseInt(req.params.companyId);
-  const targetUserId = parseInt(req.params.userId);
+  const companyId = asId(req.params.companyId);
+  const targetUserId = asId(req.params.userId);
 
   const access = await getCompanyAccess(req.userId, companyId);
   if (!access?.isOwner) return res.status(403).json({ error: 'Only owner can remove members' });

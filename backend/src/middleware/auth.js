@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
+const { asId, sameId } = require('../utils/ids');
 
 function authenticate(req, res, next) {
   const token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '');
@@ -7,7 +8,7 @@ function authenticate(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.userId;
+    req.userId = asId(decoded.userId);
     next();
   } catch {
     return res.status(401).json({ error: 'Invalid or expired token' });
@@ -15,11 +16,11 @@ function authenticate(req, res, next) {
 }
 
 async function getCompanyAccess(userId, companyId) {
-  const company = await pool.query('SELECT * FROM companies WHERE id = $1', [companyId]);
+  const company = await pool.query('SELECT * FROM companies WHERE id = $1', [asId(companyId)]);
   if (!company.rows.length) return null;
 
   const c = company.rows[0];
-  if (c.owner_id === userId) {
+  if (sameId(c.owner_id, userId)) {
     return { role: 'both', isOwner: true, company: c };
   }
 
@@ -34,7 +35,7 @@ async function getCompanyAccess(userId, companyId) {
 
 function requireRole(...allowedRoles) {
   return async (req, res, next) => {
-    const access = await getCompanyAccess(req.userId, parseInt(req.params.companyId || req.body.companyId));
+    const access = await getCompanyAccess(req.userId, req.params.companyId || req.body.companyId);
     if (!access) return res.status(403).json({ error: 'Access denied' });
 
     req.companyAccess = access;
@@ -57,7 +58,7 @@ function requireRole(...allowedRoles) {
 }
 
 async function requireCompanyUnlock(req, res, next) {
-  const companyId = parseInt(req.params.companyId || req.body.companyId);
+  const companyId = asId(req.params.companyId || req.body.companyId);
   const unlockToken = req.headers['x-company-unlock'];
 
   if (!unlockToken) {

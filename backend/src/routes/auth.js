@@ -10,7 +10,7 @@ router.get(
   '/google/callback',
   passport.authenticate('google', { failureRedirect: `${process.env.FRONTEND_URL}/?error=auth_failed`, session: false }),
   (req, res) => {
-    const token = jwt.sign({ userId: req.user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: String(req.user.id) }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

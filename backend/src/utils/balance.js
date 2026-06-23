@@ -18,10 +18,11 @@ function calculateRunningBalances(entries) {
 
 function computeBalanceUpTo(entries, upToId) {
   let balance = 0;
+  const targetId = upToId != null ? String(upToId) : null;
   for (const entry of entries) {
     const amount = parseFloat(entry.amount);
     balance += entry.entry_type === 'credit' ? amount : -amount;
-    if (entry.id === upToId) break;
+    if (targetId != null && String(entry.id) === targetId) break;
   }
   return balance;
 }

@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../config/db');
 const { authenticate, requireRole, requireCompanyUnlock } = require('../middleware/auth');
 const { calculateRunningBalances, computeBalanceUpTo } = require('../utils/balance');
+const { asId, sameId } = require('../utils/ids');
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ async function fetchPriorEntries(companyId, userId, access) {
 }
 
 router.get('/:companyId', requireRole('read'), requireCompanyUnlock, async (req, res) => {
-  const companyId = parseInt(req.params.companyId);
+  const companyId = asId(req.params.companyId);
   const { from, to } = req.query;
 
   try {
@@ -60,7 +61,7 @@ router.get('/:companyId', requireRole('read'), requireCompanyUnlock, async (req,
 });
 
 router.post('/:companyId', requireRole('write'), requireCompanyUnlock, async (req, res) => {
-  const companyId = parseInt(req.params.companyId);
+  const companyId = asId(req.params.companyId);
   const { entry_date, title, entry_type, amount, show_balance } = req.body;
 
   if (!entry_date || !title?.trim() || !['credit', 'debit'].includes(entry_type) || !amount || amount <= 0) {
@@ -109,8 +110,8 @@ router.post('/:companyId', requireRole('write'), requireCompanyUnlock, async (re
 });
 
 router.patch('/:companyId/:entryId/balance', requireRole('write'), requireCompanyUnlock, async (req, res) => {
-  const companyId = parseInt(req.params.companyId);
-  const entryId = parseInt(req.params.entryId);
+  const companyId = asId(req.params.companyId);
+  const entryId = asId(req.params.entryId);
   const { show_balance } = req.body;
 
   try {
@@ -119,7 +120,7 @@ router.patch('/:companyId/:entryId/balance', requireRole('write'), requireCompan
       [entryId, companyId]
     );
     if (!existing.rows.length) return res.status(404).json({ error: 'Entry not found' });
-    if (isWriteOnly(req.companyAccess) && existing.rows[0].created_by !== req.userId) {
+    if (isWriteOnly(req.companyAccess) && !sameId(existing.rows[0].created_by, req.userId)) {
       return res.status(403).json({ error: 'You can only modify your own entries' });
     }
 
@@ -142,8 +143,8 @@ router.patch('/:companyId/:entryId/balance', requireRole('write'), requireCompan
 });
 
 router.delete('/:companyId/:entryId', requireRole('write'), requireCompanyUnlock, async (req, res) => {
-  const companyId = parseInt(req.params.companyId);
-  const entryId = parseInt(req.params.entryId);
+  const companyId = asId(req.params.companyId);
+  const entryId = asId(req.params.entryId);
 
   let result;
   if (isWriteOnly(req.companyAccess)) {
@@ -170,7 +171,7 @@ router.delete('/:companyId/:entryId', requireRole('write'), requireCompanyUnlock
 });
 
 router.get('/:companyId/summary', requireRole('reports'), requireCompanyUnlock, async (req, res) => {
-  const companyId = parseInt(req.params.companyId);
+  const companyId = asId(req.params.companyId);
 
   try {
     const entries = await pool.query(

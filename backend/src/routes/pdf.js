@@ -3,6 +3,7 @@ const PDFDocument = require('pdfkit');
 const pool = require('../config/db');
 const { authenticate, requireRole, requireCompanyUnlock } = require('../middleware/auth');
 const { calculateRunningBalances } = require('../utils/balance');
+const { asId } = require('../utils/ids');
 
 const router = express.Router();
 
@@ -89,7 +90,7 @@ function drawDataRow(doc, y, entry, rowIndex) {
 }
 
 router.get('/:companyId', requireRole('reports'), requireCompanyUnlock, async (req, res) => {
-  const companyId = parseInt(req.params.companyId);
+  const companyId = asId(req.params.companyId);
   const { from, to } = req.query;
 
   if (!from || !to) {
