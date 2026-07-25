@@ -10,7 +10,7 @@ A full-stack digital ledger application to track money received (credits) and sp
 | Backend | Node.js, Express |
 | Database | PostgreSQL (local pgAdmin or Supabase) |
 | Auth | Google OAuth 2.0 (free) |
-| PDF | PDFKit + Noto fonts (Hindi / Unicode) |
+| PDF | PDFKit |
 
 ## Features
 
@@ -24,14 +24,13 @@ A full-stack digital ledger application to track money received (credits) and sp
 - **Summary & charts** — Monthly/yearly overview toggle, pie chart, trends, top expenses
 - **Sharing** — Share companies via registered email with Read / Write / Both roles
 - **Entry attribution** — Shows who recorded each entry
-- **PDF export** — Unicode-safe PDF (Hindi, symbols) for a custom date range
+- **PDF export** — Print ledger in book style for a custom date range
 - **Dark / Light mode** — Toggle in header
 
 ## Project Structure
 
 ```
 ├── backend/              # Express API
-│   └── assets/fonts/     # Noto fonts for PDF (Hindi/Unicode)
 ├── frontend/             # React app
 ├── database/             # SQL schemas (init.sql, supabase.sql)
 └── README.md
@@ -77,12 +76,6 @@ npm run dev
 ```
 
 Backend runs at **http://localhost:5000**
-
-PDF Hindi/Unicode requires fonts in `backend/assets/fonts/`:
-- `NotoSansDevanagari-Regular.ttf`
-- `NotoSans-Regular.ttf`
-
-These are included in the repo for production deploys on Render.
 
 ### 4. Frontend
 

@@ -38,7 +38,7 @@ export default function PdfExport({ companyId, companyName }) {
         <Download size={20} /> Export Ledger as PDF
       </h3>
       <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-        Download a printable ledger PDF. Hindi text and symbols in particulars are preserved exactly as entered.
+        Generate a printable ledger book PDF for your chosen date range.
       </p>
       <div className="flex flex-wrap items-end gap-4">
         <div>
