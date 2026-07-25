@@ -4,7 +4,7 @@ const pool = require('../config/db');
 const { authenticate, requireRole, requireCompanyUnlock } = require('../middleware/auth');
 const { calculateRunningBalances } = require('../utils/balance');
 const { asId } = require('../utils/ids');
-const { registerPdfFonts, pickFont } = require('../utils/pdfFonts');
+const { registerPdfFonts, drawMixedText, measureMixedTextHeight } = require('../utils/pdfFonts');
 
 const router = express.Router();
 
@@ -18,12 +18,12 @@ const HEADER_BG = '#f1f5f9';
 const ALT_ROW_BG = '#f8fafc';
 
 const COLS = [
-  { label: 'Date', width: 72, align: 'left', key: 'date' },
-  { label: 'Particulars', width: 188, align: 'left', key: 'title' },
-  { label: '+/-', width: 32, align: 'center', key: 'sign' },
-  { label: 'Amount', width: 88, align: 'right', key: 'amount' },
-  { label: 'Balance', width: 78, align: 'right', key: 'balance' },
-  { label: 'By', width: 57, align: 'left', key: 'by' },
+  { label: 'Date', width: 72, align: 'left' },
+  { label: 'Particulars', width: 188, align: 'left' },
+  { label: '+/-', width: 32, align: 'center' },
+  { label: 'Amount', width: 88, align: 'right' },
+  { label: 'Balance', width: 78, align: 'right' },
+  { label: 'By', width: 57, align: 'left' },
 ];
 
 function colX(index) {
@@ -56,7 +56,7 @@ function drawGrid(doc, topY, rowHeights) {
 
 function drawHeaderRow(doc, y, fonts) {
   doc.rect(MARGIN, y, TABLE_WIDTH, MIN_ROW_HEIGHT).fill(HEADER_BG);
-  doc.fillColor('#334155').font(fonts.bodyBold).fontSize(8);
+  doc.fillColor('#334155').font(fonts.latinBold).fontSize(8);
 
   COLS.forEach((col, i) => {
     doc.text(col.label, colX(i) + 4, y + 7, {
@@ -68,8 +68,7 @@ function drawHeaderRow(doc, y, fonts) {
 
 function measureRowHeight(doc, entry, fonts) {
   const title = String(entry.title ?? '');
-  doc.font(fonts.body).fontSize(8);
-  const titleHeight = doc.heightOfString(title, { width: COLS[1].width - 8 });
+  const titleHeight = measureMixedTextHeight(doc, title, COLS[1].width - 8, fonts, 8);
   return Math.max(MIN_ROW_HEIGHT, titleHeight + 12);
 }
 
@@ -87,23 +86,26 @@ function drawDataRow(doc, y, entry, rowIndex, rowHeight, fonts) {
   const title = String(entry.title ?? '');
   const byName = entry.created_by_name?.split(' ')[0] || '';
 
-  const cells = [
-    { text: formatDate(entry.entry_date), font: fonts.latin, align: 'left', color: '#0f172a', col: 0 },
-    { text: title, font: fonts.body, align: 'left', color: '#0f172a', col: 1, wrap: true },
-    { text: sign, font: fonts.latin, align: 'center', color: sign === '+' ? '#059669' : '#dc2626', col: 2 },
-    { text: formatCurrency(entry.amount), font: fonts.latin, align: 'right', color: '#0f172a', col: 3 },
-    { text: balanceText, font: fonts.latin, align: 'right', color: '#0f172a', col: 4 },
-    { text: byName, font: pickFont(byName, fonts), align: 'left', color: '#0f172a', col: 5 },
-  ];
+  doc.font(fonts.latin).fontSize(8).fillColor('#0f172a');
+  doc.text(formatDate(entry.entry_date), colX(0) + 4, y + 6, { width: COLS[0].width - 8, align: 'left' });
 
-  cells.forEach((cell) => {
-    const i = cell.col;
-    doc.font(cell.font).fontSize(8).fillColor(cell.color);
-    doc.text(cell.text, colX(i) + 4, y + 6, {
-      width: COLS[i].width - 8,
-      align: cell.align,
-      lineBreak: cell.wrap !== false,
-    });
+  drawMixedText(doc, title, colX(1) + 4, y + 6, COLS[1].width - 8, fonts, {
+    fontSize: 8,
+    color: '#0f172a',
+    align: 'left',
+  });
+
+  doc.font(fonts.latin).fontSize(8).fillColor(sign === '+' ? '#059669' : '#dc2626');
+  doc.text(sign, colX(2) + 4, y + 6, { width: COLS[2].width - 8, align: 'center' });
+
+  doc.font(fonts.latin).fontSize(8).fillColor('#0f172a');
+  doc.text(formatCurrency(entry.amount), colX(3) + 4, y + 6, { width: COLS[3].width - 8, align: 'right' });
+  doc.text(balanceText, colX(4) + 4, y + 6, { width: COLS[4].width - 8, align: 'right' });
+
+  drawMixedText(doc, byName, colX(5) + 4, y + 6, COLS[5].width - 8, fonts, {
+    fontSize: 8,
+    color: '#0f172a',
+    align: 'left',
   });
 }
 
@@ -146,12 +148,30 @@ router.get('/:companyId', requireRole('reports'), requireCompanyUnlock, async (r
     const fonts = registerPdfFonts(doc);
     doc.pipe(res);
 
-    doc.font(fonts.bodyBold).fontSize(18).fillColor('#0f172a').text(companyName, { align: 'center' });
-    doc.font(fonts.body).fontSize(11).fillColor('#475569').text('Personal Finance Ledger', { align: 'center' });
+    drawMixedText(doc, companyName, MARGIN, doc.y, TABLE_WIDTH, fonts, {
+      fontSize: 18,
+      color: '#0f172a',
+      align: 'center',
+    });
+    doc.moveDown(0.2);
+    doc.font(fonts.latin).fontSize(11).fillColor('#475569').text('Personal Finance Ledger', MARGIN, doc.y, {
+      align: 'center',
+      width: TABLE_WIDTH,
+    });
     doc.moveDown(0.3);
-    doc.fontSize(10).text(`Period: ${formatDate(from)} to ${formatDate(to)}`, { align: 'center' });
+    doc.font(fonts.latin).fontSize(10).fillColor('#0f172a').text(
+      `Period: ${formatDate(from)} to ${formatDate(to)}`,
+      MARGIN,
+      doc.y,
+      { align: 'center', width: TABLE_WIDTH }
+    );
     if (title?.trim()) {
-      doc.fontSize(9).text(`Filter: ${title.trim()}`, { align: 'center' });
+      doc.moveDown(0.2);
+      drawMixedText(doc, `Filter: ${title.trim()}`, MARGIN, doc.y, TABLE_WIDTH, fonts, {
+        fontSize: 9,
+        color: '#475569',
+        align: 'center',
+      });
     }
     doc.moveDown(1);
 
@@ -161,7 +181,7 @@ router.get('/:companyId', requireRole('reports'), requireCompanyUnlock, async (r
     if (entries.length === 0) {
       drawHeaderRow(doc, tableTop, fonts);
       drawGrid(doc, tableTop, []);
-      doc.fillColor('#64748b').font(fonts.body).fontSize(9).text(
+      doc.font(fonts.latin).fillColor('#64748b').fontSize(9).text(
         'No entries in this period.',
         MARGIN + 4,
         tableTop + MIN_ROW_HEIGHT + 8
@@ -195,7 +215,14 @@ router.get('/:companyId', requireRole('reports'), requireCompanyUnlock, async (r
         }
 
         rowHeights.forEach((h, i) => {
-          drawDataRow(doc, tableTop + MIN_ROW_HEIGHT + rowHeights.slice(0, i).reduce((a, b) => a + b, 0), entries[sliceStart + i], i, h, fonts);
+          drawDataRow(
+            doc,
+            tableTop + MIN_ROW_HEIGHT + rowHeights.slice(0, i).reduce((a, b) => a + b, 0),
+            entries[sliceStart + i],
+            i,
+            h,
+            fonts
+          );
         });
 
         drawGrid(doc, tableTop, rowHeights);
@@ -203,7 +230,7 @@ router.get('/:companyId', requireRole('reports'), requireCompanyUnlock, async (r
         if (sliceEnd >= entries.length) {
           const last = entries[entries.length - 1];
           const footerY = tableTop + MIN_ROW_HEIGHT + rowHeights.reduce((a, b) => a + b, 0) + 14;
-          doc.font(fonts.bodyBold).fontSize(10).fillColor('#0f172a');
+          doc.font(fonts.latinBold).fontSize(10).fillColor('#0f172a');
           doc.text(`Closing Balance: ${formatCurrency(last.running_balance)}`, MARGIN, footerY);
         }
 
