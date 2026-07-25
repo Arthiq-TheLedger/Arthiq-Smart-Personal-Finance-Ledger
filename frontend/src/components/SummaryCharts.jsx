@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, LineChart, Line,
@@ -28,8 +28,9 @@ function formatMonthLabel(month) {
   return `${names[parseInt(m, 10) - 1] || m} '${year?.slice(2) || ''}`;
 }
 
-export default function SummaryCharts({ summary }) {
+export default function SummaryCharts({ summary, dateFilters, onDateFiltersChange, onApplyDateFilter, onClearDateFilter }) {
   const { dark } = useTheme();
+  const [periodView, setPeriodView] = useState('monthly');
 
   const chartTheme = useMemo(
     () => ({
@@ -64,6 +65,14 @@ export default function SummaryCharts({ summary }) {
     monthLabel: formatMonthLabel(m.month),
   }));
 
+  const yearlyData = (summary.byYear || []).map((y) => ({
+    ...y,
+    yearLabel: y.year,
+  }));
+
+  const overviewData = periodView === 'monthly' ? monthlyData : yearlyData;
+  const overviewXKey = periodView === 'monthly' ? 'monthLabel' : 'yearLabel';
+
   const yAxisWidth = Math.min(160, Math.max(72, ...topExpenses.map((e) => e.name.length * 6.5)));
 
   const tooltipStyle = {
@@ -77,8 +86,38 @@ export default function SummaryCharts({ summary }) {
   const axisTick = { fill: chartTheme.tick, fontSize: 11 };
   const legendStyle = { color: chartTheme.legend, fontSize: '12px' };
 
+  const hasDateFilters = dateFilters?.from || dateFilters?.to;
+
   return (
     <div className="space-y-6">
+      {dateFilters && (
+        <div className="card">
+          <h3 className="text-heading mb-3 font-semibold">Summary Date Range</h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <input
+              type="date"
+              value={dateFilters.from}
+              onChange={(e) => onDateFiltersChange({ ...dateFilters, from: e.target.value })}
+              className="input-field"
+            />
+            <input
+              type="date"
+              value={dateFilters.to}
+              onChange={(e) => onDateFiltersChange({ ...dateFilters, to: e.target.value })}
+              className="input-field"
+            />
+            <button type="button" onClick={onApplyDateFilter} className="btn-primary text-sm !py-2.5">
+              Apply
+            </button>
+            {hasDateFilters && (
+              <button type="button" onClick={onClearDateFilter} className="btn-secondary text-sm !py-2.5">
+                Clear dates
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="card text-center">
           <p className="text-muted text-sm">Total Received</p>
@@ -94,6 +133,56 @@ export default function SummaryCharts({ summary }) {
             {formatCurrency(summary.balance)}
           </p>
         </div>
+      </div>
+
+      <div className="card">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-heading font-semibold">
+            {periodView === 'monthly' ? 'Monthly Overview' : 'Yearly Overview'}
+          </h3>
+          <div className="flex rounded-lg border border-slate-200 p-1 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => setPeriodView('monthly')}
+              className={`rounded-md px-4 py-1.5 text-sm transition ${
+                periodView === 'monthly' ? 'tab-active' : 'tab-inactive'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriodView('yearly')}
+              className={`rounded-md px-4 py-1.5 text-sm transition ${
+                periodView === 'yearly' ? 'tab-active' : 'tab-inactive'
+              }`}
+            >
+              Yearly
+            </button>
+          </div>
+        </div>
+        {overviewData.length === 0 ? (
+          <p className="text-muted py-12 text-center text-sm">No {periodView} data yet</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={overviewData} margin={{ top: 8, right: 12, left: 4, bottom: 8 }}>
+              <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" />
+              <XAxis
+                dataKey={overviewXKey}
+                tick={axisTick}
+                interval="preserveStartEnd"
+                angle={overviewData.length > 6 ? -35 : 0}
+                textAnchor={overviewData.length > 6 ? 'end' : 'middle'}
+                height={overviewData.length > 6 ? 56 : 30}
+              />
+              <YAxis tick={axisTick} tickFormatter={formatAxisAmount} width={52} />
+              <Tooltip formatter={(v) => formatCurrency(v)} contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={legendStyle} />
+              <Bar dataKey="credit" fill="#059669" name="Credit" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              <Bar dataKey="debit" fill="#dc2626" name="Debit" radius={[4, 4, 0, 0]} maxBarSize={40} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -157,7 +246,7 @@ export default function SummaryCharts({ summary }) {
 
       {topExpenses.length > 0 && (
         <div className="card">
-          <h3 className="text-heading mb-4 font-semibold">Top Expenses by Category</h3>
+          <h3 className="text-heading mb-4 font-semibold">Top Expenses by Particular</h3>
           <ResponsiveContainer width="100%" height={Math.max(280, topExpenses.length * 36 + 40)}>
             <BarChart data={topExpenses} layout="vertical" margin={{ top: 4, right: 16, left: 4, bottom: 4 }}>
               <CartesianGrid stroke={chartTheme.grid} strokeDasharray="3 3" horizontal={false} />

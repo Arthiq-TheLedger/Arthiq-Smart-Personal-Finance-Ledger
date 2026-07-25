@@ -23,9 +23,36 @@ async function fetchPriorEntries(companyId, userId, access) {
   return pool.query(query, params);
 }
 
+router.get('/:companyId/titles', requireRole('read'), requireCompanyUnlock, async (req, res) => {
+  const companyId = asId(req.params.companyId);
+  const q = req.query.q?.trim();
+
+  if (!q) return res.json([]);
+
+  try {
+    let query = `
+      SELECT DISTINCT title FROM ledger_entries
+      WHERE company_id = $1 AND title ILIKE $2`;
+    const params = [companyId, `%${q}%`];
+
+    if (isWriteOnly(req.companyAccess)) {
+      params.push(req.userId);
+      query += ` AND created_by = $${params.length}`;
+    }
+
+    query += ' ORDER BY title LIMIT 12';
+
+    const result = await pool.query(query, params);
+    res.json(result.rows.map((r) => r.title));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch suggestions' });
+  }
+});
+
 router.get('/:companyId', requireRole('read'), requireCompanyUnlock, async (req, res) => {
   const companyId = asId(req.params.companyId);
-  const { from, to } = req.query;
+  const { from, to, title } = req.query;
 
   try {
     let query = `
@@ -47,6 +74,10 @@ router.get('/:companyId', requireRole('read'), requireCompanyUnlock, async (req,
     if (to) {
       params.push(to);
       query += ` AND le.entry_date <= $${params.length}`;
+    }
+    if (title?.trim()) {
+      params.push(`%${title.trim()}%`);
+      query += ` AND le.title ILIKE $${params.length}`;
     }
 
     query += ' ORDER BY le.entry_date ASC, le.id ASC';
@@ -172,17 +203,28 @@ router.delete('/:companyId/:entryId', requireRole('write'), requireCompanyUnlock
 
 router.get('/:companyId/summary', requireRole('reports'), requireCompanyUnlock, async (req, res) => {
   const companyId = asId(req.params.companyId);
+  const { from, to } = req.query;
 
   try {
-    const entries = await pool.query(
-      'SELECT entry_type, amount, title, entry_date FROM ledger_entries WHERE company_id = $1',
-      [companyId]
-    );
+    let query = 'SELECT entry_type, amount, title, entry_date FROM ledger_entries WHERE company_id = $1';
+    const params = [companyId];
+
+    if (from) {
+      params.push(from);
+      query += ` AND entry_date >= $${params.length}`;
+    }
+    if (to) {
+      params.push(to);
+      query += ` AND entry_date <= $${params.length}`;
+    }
+
+    const entries = await pool.query(query, params);
 
     let totalCredit = 0;
     let totalDebit = 0;
     const byTitle = {};
     const byMonth = {};
+    const byYear = {};
 
     for (const e of entries.rows) {
       const amt = parseFloat(e.amount);
@@ -192,9 +234,15 @@ router.get('/:companyId/summary', requireRole('reports'), requireCompanyUnlock, 
       byTitle[e.title] = byTitle[e.title] || { credit: 0, debit: 0 };
       byTitle[e.title][e.entry_type] += amt;
 
-      const month = e.entry_date.toISOString().slice(0, 7);
+      const d = e.entry_date instanceof Date ? e.entry_date : new Date(e.entry_date);
+      const month = d.toISOString().slice(0, 7);
+      const year = d.toISOString().slice(0, 4);
+
       byMonth[month] = byMonth[month] || { credit: 0, debit: 0 };
       byMonth[month][e.entry_type] += amt;
+
+      byYear[year] = byYear[year] || { credit: 0, debit: 0 };
+      byYear[year][e.entry_type] += amt;
     }
 
     res.json({
@@ -205,6 +253,9 @@ router.get('/:companyId/summary', requireRole('reports'), requireCompanyUnlock, 
       byMonth: Object.entries(byMonth)
         .map(([month, v]) => ({ month, ...v, net: v.credit - v.debit }))
         .sort((a, b) => a.month.localeCompare(b.month)),
+      byYear: Object.entries(byYear)
+        .map(([year, v]) => ({ year, ...v, net: v.credit - v.debit }))
+        .sort((a, b) => a.year.localeCompare(b.year)),
       entryCount: entries.rows.length,
     });
   } catch (err) {

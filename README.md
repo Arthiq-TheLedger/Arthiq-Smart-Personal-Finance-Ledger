@@ -8,9 +8,9 @@ A full-stack digital ledger application to track money received (credits) and sp
 |-------|-----------|
 | Frontend | React 19, Vite, Tailwind CSS 4, Recharts |
 | Backend | Node.js, Express |
-| Database | PostgreSQL (pgAdmin) |
+| Database | PostgreSQL (local pgAdmin or Supabase) |
 | Auth | Google OAuth 2.0 (free) |
-| PDF | PDFKit |
+| PDF | PDFKit + Noto fonts (Hindi / Unicode) |
 
 ## Features
 
@@ -18,19 +18,22 @@ A full-stack digital ledger application to track money received (credits) and sp
 - **Google OAuth** — Sign in / register via Google (top-right)
 - **Multiple companies** — Create ledgers for HOME, business, etc., each password-protected
 - **Ledger entries** — Date, particulars, credit/debit (+/−), amount, running balance
+- **Particulars autocomplete** — Suggestions match what you type (not the full list)
+- **Ledger filters** — Filter by particular name and date range (e.g. 24 Jun – 24 Jul 2026)
 - **Ghost balance** — Balance shown faintly after every entry; permanent only when ticked (✓)
-- **Summary & charts** — Bar charts, pie graphs, monthly trends
+- **Summary & charts** — Monthly/yearly overview toggle, pie chart, trends, top expenses
 - **Sharing** — Share companies via registered email with Read / Write / Both roles
 - **Entry attribution** — Shows who recorded each entry
-- **PDF export** — Print ledger in book style for a custom date range
+- **PDF export** — Unicode-safe PDF (Hindi, symbols) for a custom date range
 - **Dark / Light mode** — Toggle in header
 
 ## Project Structure
 
 ```
-├── backend/          # Express API
-├── frontend/         # React app
-├── database/         # PostgreSQL init script
+├── backend/              # Express API
+│   └── assets/fonts/     # Noto fonts for PDF (Hindi/Unicode)
+├── frontend/             # React app
+├── database/             # SQL schemas (init.sql, supabase.sql)
 └── README.md
 ```
 
@@ -38,8 +41,20 @@ A full-stack digital ledger application to track money received (credits) and sp
 
 ### 1. PostgreSQL Database
 
-1. Open **pgAdmin** and create a database named `arthiq`
-2. Run the SQL script: `database/init.sql` (skip the `CREATE DATABASE` line if already created)
+**Local (pgAdmin):** create database `arthiq` and run `database/init.sql`.
+
+**Supabase (production):**
+1. Create a project at [supabase.com](https://supabase.com)
+2. Open **SQL Editor** → run `database/supabase.sql`
+3. Go to **Project Settings → Database → Connection string** (URI mode)
+4. Use the **Session pooler** URI and append `?sslmode=require` if missing
+5. Set `DATABASE_URL` on Render to that URI
+
+**Switching from CockroachDB to Supabase:**
+1. Run `database/supabase.sql` in Supabase SQL Editor
+2. Update `DATABASE_URL` on Render with the Supabase connection string
+3. Redeploy Render — no code changes needed beyond the connection string
+4. Re-create companies and entries (or export/import data manually)
 
 ### 2. Google OAuth Credentials
 
@@ -63,6 +78,12 @@ npm run dev
 
 Backend runs at **http://localhost:5000**
 
+PDF Hindi/Unicode requires fonts in `backend/assets/fonts/`:
+- `NotoSansDevanagari-Regular.ttf`
+- `NotoSans-Regular.ttf`
+
+These are included in the repo for production deploys on Render.
+
 ### 4. Frontend
 
 ```bash
@@ -77,10 +98,11 @@ Frontend runs at **http://localhost:5173**
 
 ```env
 PORT=5000
+NODE_ENV=development
 DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/arthiq
 GOOGLE_CLIENT_ID=your_client_id
 GOOGLE_CLIENT_SECRET=your_client_secret
-GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+GOOGLE_CALLBACK_URL=http://localhost:5173/api/auth/google/callback
 SESSION_SECRET=long_random_string_here
 JWT_SECRET=another_long_random_string
 FRONTEND_URL=http://localhost:5173
@@ -92,8 +114,9 @@ FRONTEND_URL=http://localhost:5173
 2. On the dashboard, click **New Company** — set name and password
 3. Open a company → enter password to unlock
 4. Add ledger entries (credit = money in, debit = money out)
-5. Tick ✓ on an entry to make its balance permanent on the ledger
-6. Switch to **Summary** for charts, **Share** to invite others, **Export PDF** to download
+5. Use **Filter Entries** to search by particular or date range
+6. Tick ✓ on an entry to make its balance permanent on the ledger
+7. Switch to **Summary** for charts (Monthly / Yearly toggle), **Share** to invite others, **Export PDF** to download
 
 ## API Endpoints
 
@@ -105,10 +128,11 @@ FRONTEND_URL=http://localhost:5173
 | POST | `/api/companies` | Create company |
 | POST | `/api/companies/:id/unlock` | Unlock with password |
 | POST | `/api/companies/:id/share` | Share with user |
-| GET | `/api/ledger/:id` | Get entries |
+| GET | `/api/ledger/:id` | Get entries (`?from=&to=&title=`) |
+| GET | `/api/ledger/:id/titles?q=` | Particular autocomplete suggestions |
 | POST | `/api/ledger/:id` | Add entry |
-| GET | `/api/ledger/:id/summary` | Get summary stats |
-| GET | `/api/pdf/:id?from=&to=` | Download PDF |
+| GET | `/api/ledger/:id/summary` | Summary stats (`?from=&to=`) |
+| GET | `/api/pdf/:id?from=&to=&title=` | Download PDF |
 
 ## License
 

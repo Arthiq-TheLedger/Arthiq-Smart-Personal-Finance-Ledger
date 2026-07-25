@@ -4,7 +4,7 @@ import { formatCurrency, formatDate } from '../utils/format';
 import api from '../utils/api';
 import ConfirmModal from './ConfirmModal';
 
-export default function LedgerTable({ entries, companyId, canWrite, onUpdate }) {
+export default function LedgerTable({ entries, companyId, canWrite, onUpdate, filtered = false }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -36,7 +36,9 @@ export default function LedgerTable({ entries, companyId, canWrite, onUpdate }) 
   if (!entries.length) {
     return (
       <div className="card py-12 text-center text-slate-500">
-        No entries yet. Add your first ledger entry above.
+        {filtered
+          ? 'No entries match your filters. Try adjusting the particular or date range.'
+          : 'No entries yet. Add your first ledger entry above.'}
       </div>
     );
   }

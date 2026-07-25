@@ -9,6 +9,7 @@ import LedgerTable from '../components/LedgerTable';
 import SummaryCharts from '../components/SummaryCharts';
 import SharePanel from '../components/SharePanel';
 import PdfExport from '../components/PdfExport';
+import LedgerFilter from '../components/LedgerFilter';
 import api, { clearUnlockToken, clearAllUnlockTokens } from '../utils/api';
 
 const tabs = [
@@ -29,6 +30,21 @@ export default function Company() {
   const [entries, setEntries] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [ledgerFilters, setLedgerFilters] = useState({ title: '', from: '', to: '' });
+  const [appliedLedgerFilters, setAppliedLedgerFilters] = useState({ title: '', from: '', to: '' });
+  const [summaryDateFilters, setSummaryDateFilters] = useState({ from: '', to: '' });
+  const [appliedSummaryDates, setAppliedSummaryDates] = useState({ from: '', to: '' });
+
+  const buildQuery = (filters) => {
+    const params = new URLSearchParams();
+    if (filters.from) params.set('from', filters.from);
+    if (filters.to) params.set('to', filters.to);
+    if (filters.title) params.set('title', filters.title);
+    const qs = params.toString();
+    return qs ? `?${qs}` : '';
+  };
+
+  const hasActiveLedgerFilters = appliedLedgerFilters.title || appliedLedgerFilters.from || appliedLedgerFilters.to;
 
   useEffect(() => {
     clearUnlockToken(companyId);
@@ -57,17 +73,22 @@ export default function Company() {
 
   const loadEntries = useCallback(() => {
     if (!unlocked) return;
-    api.get(`/ledger/${companyId}`).then((res) => setEntries(res.data)).catch(() => {
-      clearUnlockToken(companyId);
-      setUnlocked(false);
-      setShowUnlock(true);
-    });
-  }, [companyId, unlocked]);
+    api
+      .get(`/ledger/${companyId}${buildQuery(appliedLedgerFilters)}`)
+      .then((res) => setEntries(res.data))
+      .catch(() => {
+        clearUnlockToken(companyId);
+        setUnlocked(false);
+        setShowUnlock(true);
+      });
+  }, [companyId, unlocked, appliedLedgerFilters]);
 
   const loadSummary = useCallback(() => {
     if (!unlocked) return;
-    api.get(`/ledger/${companyId}/summary`).then((res) => setSummary(res.data));
-  }, [companyId, unlocked]);
+    api
+      .get(`/ledger/${companyId}/summary${buildQuery(appliedSummaryDates)}`)
+      .then((res) => setSummary(res.data));
+  }, [companyId, unlocked, appliedSummaryDates]);
 
   useEffect(() => {
     if (unlocked) {
@@ -141,16 +162,38 @@ export default function Company() {
         {tab === 'ledger' && unlocked && (
           <>
             {canWrite && <EntryForm companyId={companyId} onAdded={loadEntries} />}
+            <LedgerFilter
+              filters={ledgerFilters}
+              onChange={setLedgerFilters}
+              onApply={() => setAppliedLedgerFilters({ ...ledgerFilters })}
+              onClear={() => {
+                setLedgerFilters({ title: '', from: '', to: '' });
+                setAppliedLedgerFilters({ title: '', from: '', to: '' });
+              }}
+              hasActiveFilters={hasActiveLedgerFilters}
+            />
             <LedgerTable
               entries={entries}
               companyId={companyId}
               canWrite={canWrite}
               onUpdate={loadEntries}
+              filtered={hasActiveLedgerFilters}
             />
           </>
         )}
 
-        {tab === 'summary' && unlocked && <SummaryCharts summary={summary} />}
+        {tab === 'summary' && unlocked && (
+          <SummaryCharts
+            summary={summary}
+            dateFilters={summaryDateFilters}
+            onDateFiltersChange={setSummaryDateFilters}
+            onApplyDateFilter={() => setAppliedSummaryDates({ ...summaryDateFilters })}
+            onClearDateFilter={() => {
+              setSummaryDateFilters({ from: '', to: '' });
+              setAppliedSummaryDates({ from: '', to: '' });
+            }}
+          />
+        )}
         {tab === 'share' && unlocked && <SharePanel companyId={companyId} isOwner={company.is_owner} />}
         {tab === 'export' && unlocked && <PdfExport companyId={companyId} companyName={company.name} />}
       </main>
