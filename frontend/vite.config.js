@@ -12,12 +12,13 @@ export default defineConfig({
       injectRegister: 'auto',
       manifest: false,
       includeAssets: [
-        'favicon.png',
         'logo-icon.png',
         'logo-full.png',
         'apple-touch-icon.png',
         'icon-192.png',
         'icon-512.png',
+        'icon-512-maskable.png',
+        'icon-1024.png',
         'site.webmanifest',
       ],
       workbox: {

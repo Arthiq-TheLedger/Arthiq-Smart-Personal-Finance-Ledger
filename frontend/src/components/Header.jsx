@@ -10,7 +10,7 @@ export default function Header({ showAuth = true, variant = 'default' }) {
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full border-b transition-colors duration-300 ${
+      className={`pwa-safe-top sticky top-0 z-50 w-full border-b transition-colors duration-300 ${
         isLanding
           ? 'border-slate-200 bg-white/95 dark:border-slate-700 dark:bg-slate-900/95'
           : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900'

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 export default function Footer({ variant = 'default' }) {
   return (
     <footer
-      className={`border-t border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900 ${
+      className={`pwa-safe-bottom border-t border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900 ${
         variant === 'landing' ? '' : ''
       }`}
     >
