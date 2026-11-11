@@ -4,7 +4,14 @@ import { formatCurrency, formatDate } from '../utils/format';
 import api from '../utils/api';
 import ConfirmModal from './ConfirmModal';
 
-export default function LedgerTable({ entries, companyId, canWrite, onUpdate, filtered = false }) {
+export default function LedgerTable({
+  entries,
+  companyId,
+  canWrite,
+  onUpdate,
+  filtered = false,
+  emptyLabel = '',
+}) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -33,12 +40,16 @@ export default function LedgerTable({ entries, companyId, canWrite, onUpdate, fi
     }
   };
 
+  const filteredTotal = entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+
   if (!entries.length) {
     return (
       <div className="card py-12 text-center text-slate-500">
         {filtered
           ? 'No entries match your filters. Try adjusting the particular or date range.'
-          : 'No entries yet. Add your first ledger entry above.'}
+          : emptyLabel
+            ? `No entries for ${emptyLabel}.`
+            : 'No entries yet. Add your first ledger entry above.'}
       </div>
     );
   }
@@ -115,6 +126,21 @@ export default function LedgerTable({ entries, companyId, canWrite, onUpdate, fi
               </tr>
             ))}
           </tbody>
+          {filtered && (
+            <tfoot>
+              <tr>
+                <td className="bg-teal-50 font-semibold dark:bg-teal-950" />
+                <td className="bg-teal-50 font-semibold dark:bg-teal-950">Total</td>
+                <td className="bg-teal-50 dark:bg-teal-950" />
+                <td className="bg-teal-50 text-right font-mono font-semibold dark:bg-teal-950">
+                  {formatCurrency(filteredTotal)}
+                </td>
+                <td className="bg-teal-50 dark:bg-teal-950" />
+                <td className="bg-teal-50 dark:bg-teal-950" />
+                {canWrite && <td className="bg-teal-50 dark:bg-teal-950" />}
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
 

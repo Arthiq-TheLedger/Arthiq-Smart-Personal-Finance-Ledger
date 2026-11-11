@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, BarChart3, Users, FileDown } from 'lucide-react';
 import Header from '../components/Header';
@@ -11,6 +11,14 @@ import SharePanel from '../components/SharePanel';
 import PdfExport from '../components/PdfExport';
 import LedgerFilter from '../components/LedgerFilter';
 import api, { clearUnlockToken, clearAllUnlockTokens } from '../utils/api';
+import { entryDateKey, formatDate, periodRange } from '../utils/format';
+
+const PERIODS = [
+  { id: 'today', label: 'Today' },
+  { id: 'week', label: 'This Week' },
+  { id: 'month', label: 'This Month' },
+  { id: 'year', label: 'This Year' },
+];
 
 const tabs = [
   { id: 'ledger', label: 'Ledger', icon: BookOpen },
@@ -34,6 +42,7 @@ export default function Company() {
   const [appliedLedgerFilters, setAppliedLedgerFilters] = useState({ title: '', from: '', to: '' });
   const [summaryDateFilters, setSummaryDateFilters] = useState({ from: '', to: '' });
   const [appliedSummaryDates, setAppliedSummaryDates] = useState({ from: '', to: '' });
+  const [period, setPeriod] = useState('today');
 
   const buildQuery = (filters) => {
     const params = new URLSearchParams();
@@ -44,7 +53,19 @@ export default function Company() {
     return qs ? `?${qs}` : '';
   };
 
-  const hasActiveLedgerFilters = appliedLedgerFilters.title || appliedLedgerFilters.from || appliedLedgerFilters.to;
+  const hasActiveLedgerFilters = Boolean(
+    appliedLedgerFilters.title || appliedLedgerFilters.from || appliedLedgerFilters.to
+  );
+  const activePeriod = PERIODS.find((item) => item.id === period) || PERIODS[0];
+  const activePeriodRange = periodRange(period);
+
+  const visibleEntries = useMemo(() => {
+    if (hasActiveLedgerFilters) return entries;
+    return entries.filter((entry) => {
+      const key = entryDateKey(entry.entry_date);
+      return key >= activePeriodRange.from && key <= activePeriodRange.to;
+    });
+  }, [entries, hasActiveLedgerFilters, activePeriodRange.from, activePeriodRange.to]);
 
   useEffect(() => {
     clearUnlockToken(companyId);
@@ -162,6 +183,30 @@ export default function Company() {
         {tab === 'ledger' && unlocked && (
           <>
             {canWrite && <EntryForm companyId={companyId} onAdded={loadEntries} />}
+            <div className="card mb-4">
+              <label htmlFor="ledger-period" className="text-heading mb-2 block text-sm font-semibold">
+                Show entries
+              </label>
+              <select
+                id="ledger-period"
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                className="input-field max-w-xs"
+              >
+                {PERIODS.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-muted mt-2 text-xs">
+                {formatDate(activePeriodRange.from)}
+                {activePeriodRange.from !== activePeriodRange.to ? ` – ${formatDate(activePeriodRange.to)}` : ''}
+                {hasActiveLedgerFilters
+                  ? '. Custom filters are active, so this period applies again after you clear them.'
+                  : '. Only entries in this period are shown.'}
+              </p>
+            </div>
             <LedgerFilter
               filters={ledgerFilters}
               onChange={setLedgerFilters}
@@ -173,11 +218,12 @@ export default function Company() {
               hasActiveFilters={hasActiveLedgerFilters}
             />
             <LedgerTable
-              entries={entries}
+              entries={visibleEntries}
               companyId={companyId}
               canWrite={canWrite}
               onUpdate={loadEntries}
               filtered={hasActiveLedgerFilters}
+              emptyLabel={entries.length > 0 ? activePeriod.label.toLowerCase() : ''}
             />
           </>
         )}
