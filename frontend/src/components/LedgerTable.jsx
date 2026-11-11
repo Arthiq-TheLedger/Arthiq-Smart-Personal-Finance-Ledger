@@ -40,7 +40,13 @@ export default function LedgerTable({
     }
   };
 
-  const filteredTotal = entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+  let totalCredit = 0;
+  let totalDebit = 0;
+  for (const entry of entries) {
+    const amount = Number(entry.amount || 0);
+    if (entry.entry_type === 'credit') totalCredit += amount;
+    else totalDebit += amount;
+  }
 
   if (!entries.length) {
     return (
@@ -126,21 +132,34 @@ export default function LedgerTable({
               </tr>
             ))}
           </tbody>
-          {filtered && (
-            <tfoot>
-              <tr>
-                <td className="bg-teal-50 font-semibold dark:bg-teal-950" />
-                <td className="bg-teal-50 font-semibold dark:bg-teal-950">Total</td>
-                <td className="bg-teal-50 dark:bg-teal-950" />
-                <td className="bg-teal-50 text-right font-mono font-semibold dark:bg-teal-950">
-                  {formatCurrency(filteredTotal)}
-                </td>
-                <td className="bg-teal-50 dark:bg-teal-950" />
-                <td className="bg-teal-50 dark:bg-teal-950" />
-                {canWrite && <td className="bg-teal-50 dark:bg-teal-950" />}
-              </tr>
-            </tfoot>
-          )}
+          <tfoot>
+            <tr>
+              <td className="bg-emerald-50 dark:bg-emerald-950" />
+              <td className="bg-emerald-50 font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                Total credit
+              </td>
+              <td className="bg-emerald-50 text-center font-bold text-emerald-600 dark:bg-emerald-950">+</td>
+              <td className="bg-emerald-50 text-right font-mono font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                {formatCurrency(totalCredit)}
+              </td>
+              <td className="bg-emerald-50 dark:bg-emerald-950" />
+              <td className="bg-emerald-50 dark:bg-emerald-950" />
+              {canWrite && <td className="bg-emerald-50 dark:bg-emerald-950" />}
+            </tr>
+            <tr>
+              <td className="bg-rose-50 dark:bg-rose-950" />
+              <td className="bg-rose-50 font-semibold text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+                Total debit
+              </td>
+              <td className="bg-rose-50 text-center font-bold text-rose-600 dark:bg-rose-950">-</td>
+              <td className="bg-rose-50 text-right font-mono font-semibold text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+                {formatCurrency(totalDebit)}
+              </td>
+              <td className="bg-rose-50 dark:bg-rose-950" />
+              <td className="bg-rose-50 dark:bg-rose-950" />
+              {canWrite && <td className="bg-rose-50 dark:bg-rose-950" />}
+            </tr>
+          </tfoot>
         </table>
       </div>
 
